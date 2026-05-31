@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>スマホクイズアプリ</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <header class="app-header">
+      <h1 id="appTitle">クイズ</h1>
+      <button id="refreshButton" class="header-button" type="button">更新</button>
+    </header>
+
+    <main>
+      <!-- セクション一覧ページ -->
+      <section id="sectionPage" class="page active">
+        <div class="status-card">
+          <p id="dataStatus">データを読み込み中...</p>
+        </div>
+
+        <div id="sectionList" class="section-list"></div>
+      </section>
+
+      <!-- 問題ページ -->
+      <section id="quizPage" class="page">
+        <div class="quiz-top">
+          <button id="backButton" class="small-button" type="button">一覧へ</button>
+          <div>
+            <div id="currentSection" class="current-section"></div>
+            <div id="progressText" class="progress-text"></div>
+          </div>
+        </div>
+
+        <article class="question-card">
+          <div id="questionText" class="question-text"></div>
+        </article>
+
+        <div id="resultArea" class="result-area hidden">
+          <div id="resultLabel" class="result-label"></div>
+          <div id="explanationText" class="explanation-text"></div>
+        </div>
+
+        <div id="afterActions" class="after-actions hidden">
+          <button id="checkLaterButton" class="secondary-button" type="button">
+            後で見る
+          </button>
+          <button id="nextButton" class="primary-button" type="button">
+            次の問題へ
+          </button>
+          <button id="returnButton" class="outline-button" type="button">
+            一覧へ戻る
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 画面下部固定の解答ボタン -->
+    <div id="answerDock" class="answer-dock hidden">
+      <button id="trueButton" class="answer-button true-button" type="button">○</button>
+      <button id="falseButton" class="answer-button false-button" type="button">×</button>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
