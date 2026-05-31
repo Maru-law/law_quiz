@@ -3,69 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>スマホクイズアプリ</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>問題</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app" class="app">
-
+  <div class="container">
     <header class="app-header">
-      <h1 id="appTitle">クイズ</h1>
-      <button id="refreshButton" class="header-button" type="button">更新</button>
+      <h1 id="app-title">問題</h1>
+      <button id="refresh-button" class="header-button" type="button">更新</button>
     </header>
 
-    <main>
-      <!-- セクション一覧ページ -->
-      <section id="sectionPage" class="page active">
-        <div class="status-card">
-          <p id="dataStatus">データを読み込み中...</p>
-        </div>
+    <!-- セクション一覧 -->
+    <section id="section-page" class="page active">
+      <div class="card status-card">
+        <p id="data-status">データを読み込み中...</p>
+      </div>
+      <div id="section-list"></div>
+    </section>
 
-        <div id="sectionList" class="section-list"></div>
-      </section>
+    <!-- 問題画面 -->
+    <section id="quiz-page" class="page">
+      <div id="category-container" class="category-container">
+        <span class="category-bar"></span>
+        <span id="category-text"></span>
+      </div>
 
-      <!-- 問題ページ -->
-      <section id="quizPage" class="page">
-        <div class="quiz-top">
-          <button id="backButton" class="small-button" type="button">一覧へ</button>
-          <div>
-            <div id="currentSection" class="current-section"></div>
-            <div id="progressText" class="progress-text"></div>
-          </div>
-        </div>
+      <div id="question-card" class="card">
+        <div id="question-number" class="question-number"></div>
+        <p id="question-text"></p>
+      </div>
 
-        <article class="question-card">
-          <div id="questionText" class="question-text"></div>
-        </article>
+      <div id="answer-buttons" class="button-group answer-buttons">
+        <button id="btn-true" type="button">〇</button>
+        <button id="btn-false" type="button">×</button>
+      </div>
 
-        <div id="resultArea" class="result-area hidden">
-          <div id="resultLabel" class="result-label"></div>
-          <div id="explanationText" class="explanation-text"></div>
-        </div>
+      <div id="result-card" class="card result-card" style="display: none;">
+        <h2 id="result-text"></h2>
+        <p id="explanation-text"></p>
+      </div>
 
-        <div id="afterActions" class="after-actions hidden">
-          <button id="checkLaterButton" class="secondary-button" type="button">
-            後で見る
-          </button>
-          <button id="nextButton" class="primary-button" type="button">
-            次の問題へ
-          </button>
-          <button id="returnButton" class="outline-button" type="button">
-            一覧へ戻る
-          </button>
-        </div>
-      </section>
-    </main>
+      <div id="nav-buttons" class="button-group nav-buttons" style="display: none;">
+        <button id="check-later-btn" type="button">後で見る</button>
+        <button id="next-question-btn" type="button">次の問題へ</button>
+        <button id="back-to-list-btn" type="button">問題一覧へ</button>
+      </div>
+    </section>
 
-    <!-- 画面下部固定の解答ボタン -->
-    <div id="answerDock" class="answer-dock hidden">
-      <button id="trueButton" class="answer-button true-button" type="button">○</button>
-      <button id="falseButton" class="answer-button false-button" type="button">×</button>
-    </div>
-
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast" class="toast" style="display:none;"></div>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
