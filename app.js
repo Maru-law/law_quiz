@@ -23,14 +23,34 @@ document.addEventListener('DOMContentLoaded', initApp);
 async function initApp() {
   try {
     const response = await fetch(GAS_API_URL);
-    allQuestions = await response.json();
+    
+    // ネットワークレベルのエラーチェック
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`);
+    }
+
+    // JSONとして直接パースせず、一度テキストとして受け取る
+    const text = await response.text();
+    
+    // textの中身がJSON形式かチェック（HTMLが返ってきている場合の検知）
+    try {
+      allQuestions = JSON.parse(text);
+    } catch (parseError) {
+      console.error("【パースエラー】GASからJSONではなく以下のテキスト（またはHTML）が返却されました:\n", text);
+      throw new Error("GASからのレスポンスが不正です。コンソールの出力ログを確認してください。");
+    }
+
     processData(allQuestions);
     loadProgress();
     renderList();
     switchView('list');
   } catch (error) {
     console.error('Data fetch error:', error);
-    alert('データの取得に失敗しました。リロードしてください。');
+    alert(`データの取得に失敗しました。\n詳細: ${error.message}`);
+    
+    // ローディングのスピナーを隠してエラーメッセージを表示する処理を追加
+    const loadingView = document.getElementById('loading-view');
+    loadingView.innerHTML = `<p style="color: red; font-weight: bold;">エラーが発生しました。<br>${error.message}</p>`;
   }
 }
 
