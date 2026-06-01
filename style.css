@@ -1,130 +1,79 @@
-:root {
-  --primary-color: #007AFF;
-  --bg-color: #F2F2F7;
-  --text-main: #333333;
-  --text-muted: #8E8E93;
-  --card-bg: #FFFFFF;
-  --correct-bg: #E8F5E9;
-  --correct-text: #4CAF50;
-  --incorrect-bg: #FFEBEE;
-  --incorrect-text: #F44336;
-  --btn-gray: #788591;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
 body {
-  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  line-height: 1.6;
+  font-family: sans-serif;
+  margin: 0;
+  background: #f5f5f5;
 }
 
-#app {
-  max-width: 480px;
-  margin: 0 auto;
-  min-height: 100dvh; 
-  background-color: var(--bg-color);
-  position: relative;
-  display: flex;
-  flex-direction: column;
+.hidden {
+  display: none;
 }
 
-.view { display: none; padding: 20px 16px; flex: 1; }
-.view.active { display: flex; flex-direction: column; }
+/* セクション */
+.section-group {
+  padding: 10px;
+}
 
-/* 共通コンポーネント */
+.section-group h2 {
+  border-bottom: 2px solid #ccc;
+}
+
+.section-item {
+  background: white;
+  padding: 12px;
+  margin: 6px 0;
+  border-radius: 10px;
+}
+
+/* クイズ */
+.header {
+  padding: 10px;
+  font-weight: bold;
+}
+
 .card {
-  background: var(--card-bg);
+  background: white;
+  margin: 10px;
+  padding: 16px;
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-size: 18px;
 }
-.hidden { display: none !important; }
-strong { font-weight: bold; color: #111; }
 
-/* ローディング */
-#loading-view { align-items: center; justify-content: center; height: 100vh; }
-.spinner {
-  margin-top: 16px; width: 40px; height: 40px;
-  border: 4px solid #ddd; border-top-color: var(--primary-color);
-  border-radius: 50%; animation: spin 1s linear infinite;
+/* ボタン */
+.buttons {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-/* 一覧画面 */
-.category-group { margin-bottom: 24px; }
-.category-title { font-size: 1.1rem; margin-bottom: 12px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 4px;}
-.year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
-.year-btn {
-  background: var(--card-bg); border: 1px solid #ddd; padding: 12px 8px;
-  border-radius: 8px; font-size: 0.9rem; font-weight: bold;
-  cursor: pointer; text-align: center; color: var(--primary-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-.year-btn.completed { background: #E0E0E0; color: var(--text-muted); text-decoration: line-through; }
-
-/* クイズ画面ヘッダー */
-#quiz-view header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: baseline; }
-#current-section-title { font-size: 1.2rem; display: flex; align-items: center; }
-.accent-bar { display: inline-block; width: 4px; height: 18px; background-color: var(--primary-color); margin-right: 8px; border-radius: 2px; }
-#progress-text { font-size: 0.9rem; color: var(--text-muted); font-weight: bold; }
-
-/* クイズ内容 */
-#quiz-content { flex: 1; }
-.question-number { color: var(--primary-color); font-size: 1.1rem; margin-bottom: 12px; }
-#question-text { font-size: 1.05rem; }
-#quiz-scroll-area {
+button {
   flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px;
-  padding-bottom: 24px; /* 下に余裕を持たせる */
-}
-#bottom-controls {
-  background-color: #FFFFFF;
-  padding: 16px 16px 24px 16px; /* iPhoneのホームバーを考慮して下部余白を確保 */
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 16px rgba(0,0,0,0.08); /* ご要望の上部ドロップシャドウ */
-  z-index: 10;
+  padding: 20px;
+  font-size: 24px;
+  border: none;
 }
 
-/* 結果カード */
-#result-card { text-align: center; }
-#result-title { font-size: 1.4rem; margin-bottom: 12px; }
-#result-card.correct { background-color: var(--correct-bg); }
-#result-card.correct #result-title { color: var(--correct-text); }
-#result-card.incorrect { background-color: var(--incorrect-bg); }
-#result-card.incorrect #result-title { color: var(--incorrect-text); }
-#explanation-text { text-align: left; font-size: 0.95rem; }
+#btnCircle {
+  background: #4caf50;
+  color: white;
+}
 
-/* アクションボタン */
-#action-buttons { 
-  display: flex; 
-  gap: 12px; 
-  margin-bottom: 16px; /* 解答ボタンとの間の余白 */
+#btnCross {
+  background: #f44336;
+  color: white;
 }
-#action-buttons button {
-  flex: 1; padding: 14px; border: none; border-radius: 8px;
-  font-size: 1rem; font-weight: bold; color: white; cursor: pointer;
-}
-.btn-secondary { background-color: var(--btn-gray); }
-.btn-primary { background-color: var(--primary-color); }
 
-/* 解答ボタン (O/X) */
-#answer-buttons { 
-  display: flex; 
-  gap: 16px; 
-  padding-bottom: 0; 
-  margin-top: 0; 
+.disabled {
+  opacity: 0.4;
 }
-.answer-btn {
-  flex: 1; height: 64px; background: var(--card-bg); border-radius: 8px;
-  font-size: 1.8rem; font-weight: bold; cursor: pointer;
-  transition: all 0.2s ease; display: flex; align-items: center; justify-content: center;
+
+/* 結果 */
+.correct {
+  background: #e0f7fa;
+  padding: 10px;
 }
-.btn-o { border: 2px solid var(--primary-color); color: var(--primary-color); }
-.btn-x { border: 2px solid var(--incorrect-text); color: var(--incorrect-text); }
-.answer-btn:active { transform: scale(0.95); }
-.answer-btn.disabled { pointer-events: none; }
-.answer-btn.dimmed { opacity: 0.3; background-color: #f9f9f9; }
+
+.wrong {
+  background: #ffebee;
+  padding: 10px;
+}

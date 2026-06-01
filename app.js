@@ -1,235 +1,159 @@
-// GASのWebアプリURL（※デプロイ後に取得したURLに書き換えてください）
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec';
-const STORAGE_KEY = 'law_quiz_progress_v1';
+const GAS_URL = "https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec";
 
-let allQuestions = [];
-let groupedSections = {}; // { "民法": { "R01": [Q1, Q2...], "R02": [...] } }
-let currentSectionData = [];
-let currentQuestionIndex = 0;
+let allData = [];
+let currentSection = "";
+let sectionData = [];
+let currentIndex = 0;
 let currentQuestion = null;
-let isShowingTrue = true; 
-let completedIds = []; 
-let totalSectionQuestions = 0;
+let isTrueShown = false;
 
-// DOM Elements
-const views = {
-  loading: document.getElementById('loading-view'),
-  list: document.getElementById('list-view'),
-  quiz: document.getElementById('quiz-view')
-};
-
-document.addEventListener('DOMContentLoaded', initApp);
-
-async function initApp() {
-  try {
-    const response = await fetch(GAS_API_URL);
-    
-    // ネットワークレベルのエラーチェック
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`);
-    }
-
-    // JSONとして直接パースせず、一度テキストとして受け取る
-    const text = await response.text();
-    
-    // textの中身がJSON形式かチェック（HTMLが返ってきている場合の検知）
-    try {
-      allQuestions = JSON.parse(text);
-    } catch (parseError) {
-      console.error("【パースエラー】GASからJSONではなく以下のテキスト（またはHTML）が返却されました:\n", text);
-      throw new Error("GASからのレスポンスが不正です。コンソールの出力ログを確認してください。");
-    }
-
-    processData(allQuestions);
-    loadProgress();
-    renderList();
-    switchView('list');
-  } catch (error) {
-    console.error('Data fetch error:', error);
-    alert(`データの取得に失敗しました。\n詳細: ${error.message}`);
-    
-    // ローディングのスピナーを隠してエラーメッセージを表示する処理を追加
-    const loadingView = document.getElementById('loading-view');
-    loadingView.innerHTML = `<p style="color: red; font-weight: bold;">エラーが発生しました。<br>${error.message}</p>`;
-  }
-}
-
-function switchView(viewName) {
-  Object.values(views).forEach(v => v.classList.remove('active'));
-  views[viewName].classList.add('active');
-  window.scrollTo(0, 0);
-}
-
-// データのグルーピング (A列 "カテゴリ_年度" を分割)
-function processData(data) {
-  groupedSections = {};
-  data.forEach(q => {
-    if (!q.section) return;
-    const parts = q.section.split('_');
-    const category = parts[0];
-    const year = parts[1] || 'その他';
-
-    if (!groupedSections[category]) groupedSections[category] = {};
-    if (!groupedSections[category][year]) groupedSections[category][year] = [];
-    
-    groupedSections[category][year].push(q);
-  });
-}
-
-function loadProgress() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  completedIds = saved ? JSON.parse(saved) : [];
-}
-
-function saveProgress() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(completedIds));
-}
-
-function renderList() {
-  const container = document.getElementById('category-container');
-  container.innerHTML = '';
-
-  for (const [category, yearsObj] of Object.entries(groupedSections)) {
-    const groupDiv = document.createElement('div');
-    groupDiv.className = 'category-group';
-    
-    const title = document.createElement('h2');
-    title.className = 'category-title';
-    title.textContent = category;
-    groupDiv.appendChild(title);
-
-    const grid = document.createElement('div');
-    grid.className = 'year-grid';
-
-    for (const [year, questions] of Object.entries(yearsObj)) {
-      const btn = document.createElement('button');
-      btn.className = 'year-btn';
-      
-      btn.textContent = year;
-      btn.onclick = () => startQuiz(category, year, questions);
-      grid.appendChild(btn);
-    }
-    groupDiv.appendChild(grid);
-    container.appendChild(groupDiv);
-  }
-}
-
-function startQuiz(category, year, questions) {
-  // 未回答のフィルタリング処理を削除し、常にすべての問題を対象にする
-  let remainingQuestions = [...questions];
-  
-  // ランダムにシャッフル
-  currentSectionData = remainingQuestions.sort(() => Math.random() - 0.5);
-  totalSectionQuestions = questions.length;
-  
-  // 常に1問目からスタートするように固定
-  currentQuestionIndex = 1;
-
-  document.getElementById('section-name-text').textContent = `${category}_${year}`;
-  
-  switchView('quiz');
-  loadNextQuestion();
-}
-
-// Markdownの太字(**text**)を変換する関数
+// Markdown → HTML
 function parseMarkdown(text) {
-  if (!text) return '';
-  // スプレッドシートの改行(\n)を <br> タグに変換し、太文字の処理も併用する
-  return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  return text
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
 }
 
-function loadNextQuestion() {
-  if (currentSectionData.length === 0) {
-    alert('このセクションの問題を全て解き終えました！');
-    renderList();
-    switchView('list');
-    return;
-  }
+// 初期化
+async function init() {
+  const res = await fetch(GAS_URL);
+  allData = await res.json();
+  renderSections();
+}
 
-  // 初期化・UIリセット
-  currentQuestion = currentSectionData.pop();
-  isShowingTrue = Math.random() >= 0.5; // 50%の確率
-  
-  document.getElementById('q-num').textContent = currentQuestionIndex;
-  document.getElementById('progress-text').textContent = `全${totalSectionQuestions}問中 ${currentQuestionIndex}問目`;
-  
-  // 問題文セット
-  const qText = isShowingTrue ? currentQuestion.question_true : currentQuestion.question_false;
-  document.getElementById('question-text').innerHTML = parseMarkdown(qText);
+window.onload = init;
 
-  // UI状態の復元
-  document.getElementById('result-card').classList.add('hidden');
-  document.getElementById('action-buttons').classList.add('hidden');
-  
-  const btnO = document.getElementById('btn-true');
-  const btnX = document.getElementById('btn-false');
-  
-  [btnO, btnX].forEach(btn => {
-    btn.classList.remove('disabled', 'dimmed');
+// セクション一覧生成
+function renderSections() {
+  const container = document.getElementById("sectionPage");
+  const grouped = {};
+
+  allData.forEach(q => {
+    const [category, year] = q.section.split("_");
+    if (!grouped[category]) grouped[category] = [];
+    grouped[category].push(year);
+  });
+
+  container.innerHTML = "";
+
+  Object.keys(grouped).forEach(cat => {
+    const div = document.createElement("div");
+    div.className = "section-group";
+
+    const title = document.createElement("h2");
+    title.textContent = cat;
+    div.appendChild(title);
+
+    grouped[cat].forEach(year => {
+      const item = document.createElement("div");
+      item.className = "section-item";
+      item.textContent = year;
+      item.onclick = () => startSection(`${cat}_${year}`);
+      div.appendChild(item);
+    });
+
+    container.appendChild(div);
   });
 }
 
-// 解答ボタンのイベントリスナー
-document.getElementById('btn-true').onclick = () => handleAnswer(true);
-document.getElementById('btn-false').onclick = () => handleAnswer(false);
+// セクション開始
+function startSection(section) {
+  currentSection = section;
 
-function handleAnswer(userSelectedTrue) {
-  // 正誤判定：正しい文章が表示されていて「〇」を選んだ、または間違った文章で「×」を選んだ場合
-  const isCorrect = (isShowingTrue === userSelectedTrue);
-  
-  // 進捗保存
-  if (!completedIds.includes(currentQuestion.id)) {
-    completedIds.push(currentQuestion.id);
-    saveProgress();
+  sectionData = allData.filter(q => q.section === section);
+
+  // レジューム
+  const saved = JSON.parse(localStorage.getItem(section) || "[]");
+
+  const unanswered = sectionData.filter(q => !saved.includes(q.id));
+
+  if (unanswered.length === 0) {
+    localStorage.removeItem(section);
+    return startSection(section);
   }
 
-  // ボタンの視覚的フィードバック（選ばなかった方をグレーアウト）
-  const btnO = document.getElementById('btn-true');
-  const btnX = document.getElementById('btn-false');
-  btnO.classList.add('disabled');
-  btnX.classList.add('disabled');
-  
-  if (userSelectedTrue) {
-    btnX.classList.add('dimmed');
-  } else {
-    btnO.classList.add('dimmed');
-  }
+  document.getElementById("sectionPage").classList.add("hidden");
+  document.getElementById("quizPage").classList.remove("hidden");
 
-  // 結果カードの表示
-  const resultCard = document.getElementById('result-card');
-  const resultTitle = document.getElementById('result-title');
-  const expText = document.getElementById('explanation-text');
-
-  resultCard.classList.remove('hidden', 'correct', 'incorrect');
-  if (isCorrect) {
-    resultCard.classList.add('correct');
-    resultTitle.textContent = '正解';
-  } else {
-    resultCard.classList.add('incorrect');
-    resultTitle.textContent = '間違い';
-  }
-  
-  expText.innerHTML = parseMarkdown(currentQuestion.explanation);
-
-  // アクションボタンの表示制御
-  const actionButtons = document.getElementById('action-buttons');
-  const btnNext = document.getElementById('btn-next-question');
-  actionButtons.classList.remove('hidden');
-  
-  if (currentSectionData.length === 0) {
-    btnNext.style.display = 'none'; // 最終問題の場合は非表示
-  } else {
-    btnNext.style.display = 'block';
-  }
+  nextQuestion();
 }
 
-// アクションボタンの挙動
-document.getElementById('btn-next-question').onclick = () => {
-  currentQuestionIndex++;
-  loadNextQuestion();
-};
+// 次問題
+function nextQuestion() {
+  clearUI();
 
-document.getElementById('btn-back-list').onclick = () => {
-  renderList();
-  switchView('list');
-};
+  const saved = JSON.parse(localStorage.getItem(currentSection) || []);
+
+  const remaining = sectionData.filter(q => !saved.includes(q.id));
+
+  currentQuestion = remaining[Math.floor(Math.random() * remaining.length)];
+  isTrueShown = Math.random() < 0.5;
+
+  document.getElementById("sectionTitle").textContent = currentSection;
+  document.getElementById("progress").textContent =
+    `${sectionData.length - remaining.length + 1} / ${sectionData.length}`;
+
+  const text = isTrueShown
+    ? currentQuestion.question_true
+    : currentQuestion.question_false;
+
+  document.getElementById("questionText").innerHTML = parseMarkdown(text);
+}
+
+// 解答処理
+function answer(isCircle) {
+  const correct = (isTrueShown && isCircle) || (!isTrueShown && !isCircle);
+
+  const resultArea = document.getElementById("resultArea");
+  resultArea.classList.remove("hidden");
+  resultArea.className = correct ? "correct" : "wrong";
+
+  resultArea.innerHTML =
+    `<b>${correct ? "正解" : "不正解"}</b><br><br>` +
+    parseMarkdown(currentQuestion.explanation);
+
+  document.getElementById("btnCircle").classList.add("disabled");
+  document.getElementById("btnCross").classList.add("disabled");
+
+  // 保存
+  const saved = JSON.parse(localStorage.getItem(currentSection) || []);
+  saved.push(currentQuestion.id);
+  localStorage.setItem(currentSection, JSON.stringify(saved));
+
+  showNextActions();
+}
+
+document.getElementById("btnCircle").onclick = () => answer(true);
+document.getElementById("btnCross").onclick = () => answer(false);
+
+// 次アクション
+function showNextActions() {
+  const div = document.getElementById("nextActions");
+  div.classList.remove("hidden");
+
+  const saved = JSON.parse(localStorage.getItem(currentSection) || []);
+  const isLast = saved.length === sectionData.length;
+
+  div.innerHTML = "";
+
+  if (!isLast) {
+    const nextBtn = document.createElement("button");
+    nextBtn.innerText = "次の問題へ";
+    nextBtn.onclick = nextQuestion;
+    div.appendChild(nextBtn);
+  }
+
+  const backBtn = document.createElement("button");
+  backBtn.innerText = "一覧へ戻る";
+  backBtn.onclick = () => location.reload();
+  div.appendChild(backBtn);
+}
+
+// 初期化
+function clearUI() {
+  document.getElementById("resultArea").classList.add("hidden");
+  document.getElementById("nextActions").classList.add("hidden");
+
+  document.getElementById("btnCircle").classList.remove("disabled");
+  document.getElementById("btnCross").classList.remove("disabled");
+}
