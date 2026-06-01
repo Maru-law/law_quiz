@@ -105,10 +105,6 @@ function renderList() {
       const btn = document.createElement('button');
       btn.className = 'year-btn';
       
-      // そのセクションの問題が全て完了しているかチェック
-      const isAllCompleted = questions.every(q => completedIds.includes(q.id));
-      if (isAllCompleted) btn.classList.add('completed');
-
       btn.textContent = year;
       btn.onclick = () => startQuiz(category, year, questions);
       grid.appendChild(btn);
@@ -119,22 +115,15 @@ function renderList() {
 }
 
 function startQuiz(category, year, questions) {
-  // 未回答の問題を抽出
-  let remainingQuestions = questions.filter(q => !completedIds.includes(q.id));
+  // 未回答のフィルタリング処理を削除し、常にすべての問題を対象にする
+  let remainingQuestions = [...questions];
   
-  // 全て回答済みの場合はリセットして全問対象にする
-  if (remainingQuestions.length === 0) {
-    const idsToReset = questions.map(q => q.id);
-    completedIds = completedIds.filter(id => !idsToReset.includes(id));
-    saveProgress();
-    remainingQuestions = [...questions];
-    renderList(); // 一覧画面の取り消し線状態を更新
-  }
-
   // ランダムにシャッフル
   currentSectionData = remainingQuestions.sort(() => Math.random() - 0.5);
   totalSectionQuestions = questions.length;
-  currentQuestionIndex = questions.length - currentSectionData.length + 1;
+  
+  // 常に1問目からスタートするように固定
+  currentQuestionIndex = 1;
 
   document.getElementById('section-name-text').textContent = `${category}_${year}`;
   
@@ -145,7 +134,8 @@ function startQuiz(category, year, questions) {
 // Markdownの太字(**text**)を変換する関数
 function parseMarkdown(text) {
   if (!text) return '';
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // スプレッドシートの改行(\n)を <br> タグに変換し、太文字の処理も併用する
+  return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 }
 
 function loadNextQuestion() {
