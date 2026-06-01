@@ -52,12 +52,37 @@ async function init() {
 async function fetchAndCacheData() {
   switchView('loading');
   try {
-    const res = await fetch(GAS_URL);
-    allData = await res.json();
+    // GASのリダイレクト仕様に対応するため redirect: 'follow' を明示
+    const res = await fetch(GAS_URL, {
+      method: 'GET',
+      redirect: 'follow'
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTPエラー: ${res.status} ${res.statusText}`);
+    }
+
+    // 一旦テキストとしてレスポンスを取得する
+    const text = await res.text();
+
+    // GASがJSONではなくHTML（Googleログイン画面やエラー画面）を返した場合の検知
+    if (text.trim().startsWith('<')) {
+      console.error("GASからの予期せぬHTMLレスポンス:", text);
+      throw new Error('JSONではなくHTMLが返却されました。\nGASのアクセス権限設定、またはGoogleの複数アカウントログイン問題が原因の可能性があります。');
+    }
+
+    // 問題なければJSONとしてパース
+    allData = JSON.parse(text);
     localStorage.setItem('quiz_data', JSON.stringify(allData));
     renderList();
+    
   } catch (error) {
-    alert('データの取得に失敗しました。ネットワークを確認してください。');
+    console.error('Fetch Error:', error);
+    // 開発者ツールを開かなくてもエラーの正体がわかるようにアラートに詳細を出す
+    alert(`データの取得に失敗しました。\n詳細: ${error.message}`);
+    
+    // エラーで画面が真っ白になるのを防ぐため、一覧画面へ強制遷移
+    switchView('list');
   }
 }
 
