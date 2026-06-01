@@ -1,298 +1,214 @@
-// GASのWebアプリURLをここに設定してください
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec';
+// ====== 設定 ======
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec";
 
-// 状態管理
-let allData = [];
-let currentSectionData = [];
-let progressData = {}; 
-let checkUpdates = {}; // { rowNumber: boolean }
+// ====== 状態管理 ======
+let allQuestions = [];
+let progressData = {}; // { "民法_R01": [id1, id2...], ... }
+let currentSectionKey = "";
+let currentSectionQuestions = [];
+let remainingQuestions = [];
+let currentQuestion = null;
+let currentIsQuestionTrue = true; // 現在の問題がTrue用かFalse用か
 
-// DOM要素
-const views = {
-  loading: document.getElementById('loading-view'),
-  list: document.getElementById('list-view'),
-  quiz: document.getElementById('quiz-view')
+// ====== DOM要素 ======
+const screens = {
+  loading: document.getElementById('loading-screen'),
+  list: document.getElementById('list-screen'),
+  quiz: document.getElementById('quiz-screen')
 };
 
-// クイズ用DOM
-const qNumberDisplay = document.getElementById('question-number-display');
-const progressText = document.getElementById('progress-text');
-const qText = document.getElementById('question-text');
-const expCard = document.getElementById('explanation-card');
-const resTitle = document.getElementById('result-title');
-const expText = document.getElementById('explanation-text');
-const ansButtons = document.getElementById('answer-buttons');
-const nextButtons = document.getElementById('next-buttons');
-const btnMaru = document.getElementById('btn-maru');
-const btnBatsu = document.getElementById('btn-batsu');
-const btnNext = document.getElementById('btn-next');
-const btnBackList = document.getElementById('btn-back-list');
-const checkCheckbox = document.getElementById('check-later-checkbox');
-const headerSectionName = document.getElementById('header-section-name');
-
-// 現在の問題ステータス
-let currentQuestion = null;
-let currentIsTrue = true;
-let currentSectionName = '';
-
 // 初期化
-async function init() {
+document.addEventListener('DOMContentLoaded', initApp);
+
+async function initApp() {
   loadProgress();
-  const cachedData = localStorage.getItem('quiz_data');
   
+  // キャッシュの確認
+  const cachedData = localStorage.getItem('quizData');
   if (cachedData) {
-    allData = JSON.parse(cachedData);
-    renderList();
+    allQuestions = JSON.parse(cachedData);
+    renderListScreen();
   } else {
-    await fetchAndCacheData();
+    await fetchFromGAS();
   }
 }
 
-// データの取得とキャッシュ
-async function fetchAndCacheData() {
-  switchView('loading');
+async function fetchFromGAS() {
   try {
-    // GASのリダイレクト仕様に対応するため redirect: 'follow' を明示
-    const res = await fetch(GAS_URL, {
-      method: 'GET',
-      redirect: 'follow'
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTPエラー: ${res.status} ${res.statusText}`);
-    }
-
-    // 一旦テキストとしてレスポンスを取得する
-    const text = await res.text();
-
-    // GASがJSONではなくHTML（Googleログイン画面やエラー画面）を返した場合の検知
-    if (text.trim().startsWith('<')) {
-      console.error("GASからの予期せぬHTMLレスポンス:", text);
-      throw new Error('JSONではなくHTMLが返却されました。\nGASのアクセス権限設定、またはGoogleの複数アカウントログイン問題が原因の可能性があります。');
-    }
-
-    // 問題なければJSONとしてパース
-    allData = JSON.parse(text);
-    localStorage.setItem('quiz_data', JSON.stringify(allData));
-    renderList();
-    
+    const response = await fetch(GAS_WEB_APP_URL);
+    const data = await response.json();
+    allQuestions = data;
+    localStorage.setItem('quizData', JSON.stringify(data));
+    renderListScreen();
   } catch (error) {
-    console.error('Fetch Error:', error);
-    // 開発者ツールを開かなくてもエラーの正体がわかるようにアラートに詳細を出す
-    alert(`データの取得に失敗しました。\n詳細: ${error.message}`);
-    
-    // エラーで画面が真っ白になるのを防ぐため、一覧画面へ強制遷移
-    switchView('list');
+    alert("データの取得に失敗しました。通信環境を確認してください。");
   }
 }
 
-document.getElementById('force-sync-btn').addEventListener('click', fetchAndCacheData);
-
-// Markdown風太字のパース
-function parseMarkdown(text) {
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+function loadProgress() {
+  const saved = localStorage.getItem('quizProgress');
+  if (saved) progressData = JSON.parse(saved);
 }
 
-// セクション名の分割 (例: "民法R01" -> カテゴリ"民法", 年度"R01")
-// 末尾のアンダースコア＋英数字、または英数字を年度とみなす
-function splitSectionName(sectionStr) {
-  const match = sectionStr.match(/^(.*?)(_?[a-zA-Z0-9]+)$/);
-  if (match) return { category: match[1], year: match[2].replace('_', '') };
-  return { category: "その他", year: sectionStr };
+function saveProgress() {
+  localStorage.setItem('quizProgress', JSON.stringify(progressData));
 }
 
-// 一覧画面のレンダリング
-function renderList() {
+function switchScreen(screenName) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[screenName].classList.add('active');
+}
+
+// ====== 一覧画面ロジック ======
+function renderListScreen() {
   const container = document.getElementById('category-container');
   container.innerHTML = '';
   
   // カテゴリごとにグループ化
   const grouped = {};
-  allData.forEach(item => {
-    const { category, year } = splitSectionName(item.section);
-    if (!grouped[category]) grouped[category] = new Set();
-    grouped[category].add({ name: item.section, year: year });
+  allQuestions.forEach(q => {
+    const parts = q.section.split('_');
+    const category = parts[0] || 'その他';
+    const year = parts.slice(1).join('_') || '共通';
+    
+    if (!grouped[category]) grouped[category] = {};
+    if (!grouped[category][year]) grouped[category][year] = { count: 0, ids: [] };
+    
+    grouped[category][year].count++;
+    grouped[category][year].ids.push(q.id);
   });
 
-  for (const [category, sections] of Object.entries(grouped)) {
-    const groupDiv = document.createElement('div');
-    groupDiv.className = 'category-group';
+  for (const [category, years]] of Object.entries(grouped)) {
+    const block = document.createElement('div');
+    block.className = 'category-block';
     
-    const title = document.createElement('h2');
+    const title = document.createElement('div');
     title.className = 'category-title';
     title.textContent = category;
-    groupDiv.appendChild(title);
+    block.appendChild(title);
     
     const grid = document.createElement('div');
-    grid.className = 'section-grid';
+    grid.className = 'year-grid';
     
-    Array.from(sections).forEach(sec => {
-      const item = document.createElement('div');
-      item.className = 'section-item';
-      
-      // 進捗状況に応じて色を変える等の拡張も可能
-      item.textContent = sec.year;
-      item.addEventListener('click', () => startQuiz(sec.name));
-      grid.appendChild(item);
-    });
-    
-    groupDiv.appendChild(grid);
-    container.appendChild(groupDiv);
+    for (const [year, info] of Object.entries(years)) {
+      const sectionKey = `${category}_${year}`;
+      const completedIds = progressData[sectionKey] || [];
+      const isCompleted = completedIds.length >= info.count;
+
+      const btn = document.createElement('div');
+      btn.className = `year-btn ${isCompleted ? 'completed' : ''}`;
+      btn.textContent = year;
+      btn.onclick = () => startSection(sectionKey);
+      grid.appendChild(btn);
+    }
+    block.appendChild(grid);
+    container.appendChild(block);
   }
-  switchView('list');
+  switchScreen('list');
 }
 
-// クイズの開始
-function startQuiz(sectionName) {
-  currentSectionName = sectionName;
-  headerSectionName.textContent = sectionName;
+// ====== クイズ画面ロジック ======
+function startSection(sectionKey) {
+  currentSectionKey = sectionKey;
+  currentSectionQuestions = allQuestions.filter(q => q.section === sectionKey);
   
-  // セクションに属する問題を抽出
-  const sectionQuestions = allData.filter(q => q.section === sectionName);
-  const total = sectionQuestions.length;
+  const completedIds = progressData[sectionKey] || [];
+  remainingQuestions = currentSectionQuestions.filter(q => !completedIds.includes(q.id));
   
-  // レジューム処理（未回答の行番号リストを取得）
-  let remainingRows = progressData[sectionName] || [];
-  
-  // 初回、または全て解き終わっている場合はリセット
-  if (remainingRows.length === 0) {
-    remainingRows = sectionQuestions.map(q => q.row);
+  // 全て解き終わっていたらリセット
+  if (remainingQuestions.length === 0) {
+    progressData[sectionKey] = [];
+    saveProgress();
+    remainingQuestions = [...currentSectionQuestions];
+    renderListScreen(); // UIの完了色をリセットするため
   }
-  
-  // シャッフル
-  remainingRows.sort(() => Math.random() - 0.5);
-  progressData[sectionName] = remainingRows;
-  saveProgress();
-  
-  currentSectionData = sectionQuestions; // 全体数はUI表示に必要
+
+  switchScreen('quiz');
+  document.getElementById('header-section-name').textContent = sectionKey;
   nextQuestion();
-  switchView('quiz');
 }
 
 function nextQuestion() {
-  resetUI();
+  // UIリセット
+  document.getElementById('result-card').classList.add('hidden');
+  document.getElementById('nav-buttons').classList.add('hidden');
+  const btnTrue = document.getElementById('btn-true');
+  const btnFalse = document.getElementById('btn-false');
+  btnTrue.classList.remove('disabled-look', 'selected');
+  btnFalse.classList.remove('disabled-look', 'selected');
+  btnTrue.onclick = () => handleAnswer(true);
+  btnFalse.onclick = () => handleAnswer(false);
+
+  // 問題選定
+  const randomIndex = Math.floor(Math.random() * remainingQuestions.length);
+  currentQuestion = remainingQuestions[randomIndex];
+  currentIsQuestionTrue = Math.random() < 0.5;
+
+  // 画面更新
+  const total = currentSectionQuestions.length;
+  const currentNum = total - remainingQuestions.length + 1;
+  document.getElementById('question-number').textContent = `問題 ${currentNum}`;
   
-  const remainingRows = progressData[currentSectionName];
-  const total = currentSectionData.length;
-  const currentNum = total - remainingRows.length + 1;
-  
-  if (remainingRows.length === 0) {
-    // 全問終了のフェイルセーフ（通常はボタンで制御）
-    backToList();
-    return;
-  }
-  
-  // 次の問題をPop
-  const targetRow = remainingRows.pop();
-  currentQuestion = allData.find(q => q.row === targetRow);
-  
-  // UI更新
-  qNumberDisplay.textContent = `問題 ${currentNum}`;
-  progressText.textContent = `${currentNum} / ${total}問`;
-  
-  // 真偽をランダムに決定 (50%)
-  currentIsTrue = Math.random() >= 0.5;
-  qText.textContent = currentIsTrue ? currentQuestion.question_true : currentQuestion.question_false;
-  
-  // チェックボックスの状態復元（未送信の変更があればそれを優先）
-  if (checkUpdates.hasOwnProperty(currentQuestion.row)) {
-    checkCheckbox.checked = checkUpdates[currentQuestion.row];
-  } else {
-    checkCheckbox.checked = currentQuestion.check;
-  }
+  const qText = currentIsQuestionTrue ? currentQuestion.question_true : currentQuestion.question_false;
+  document.getElementById('question-text').innerHTML = parseMarkdown(qText);
 }
 
-// 解答ボタンの処理
-btnMaru.addEventListener('click', () => handleAnswer('O'));
-btnBatsu.addEventListener('click', () => handleAnswer('X'));
+function handleAnswer(userChoseTrue) {
+  // ボタンの見た目更新
+  const btnTrue = document.getElementById('btn-true');
+  const btnFalse = document.getElementById('btn-false');
+  btnTrue.onclick = null;
+  btnFalse.onclick = null;
 
-function handleAnswer(selectedStr) {
-  // 正解判定
-  const isCorrect = (selectedStr === 'O' && currentIsTrue) || (selectedStr === 'X' && !currentIsTrue);
-  
-  // UIの更新
-  ansButtons.classList.add('hidden');
-  nextButtons.classList.remove('hidden');
-  expCard.classList.remove('hidden');
-  
-  if (isCorrect) {
-    expCard.className = 'card explanation-card success';
-    resTitle.textContent = '正解';
+  if (userChoseTrue) {
+    btnTrue.classList.add('selected');
+    btnFalse.classList.add('disabled-look');
   } else {
-    expCard.className = 'card explanation-card danger';
-    resTitle.textContent = '間違い';
+    btnFalse.classList.add('selected');
+    btnTrue.classList.add('disabled-look');
   }
+
+  // 正誤判定
+  const isCorrect = userChoseTrue === currentIsQuestionTrue;
+
+  // 結果表示
+  const resultCard = document.getElementById('result-card');
+  const resultTitle = document.getElementById('result-title');
+  const resultText = document.getElementById('result-text');
   
-  expText.innerHTML = parseMarkdown(currentQuestion.explanation);
-  
-  // 最終問題の場合は「次の問題へ」を非表示
-  if (progressData[currentSectionName].length === 0) {
-    btnNext.classList.add('hidden');
-  } else {
-    btnNext.classList.remove('hidden');
-  }
-  
+  resultCard.classList.remove('hidden', 'success', 'error');
+  resultCard.classList.add(isCorrect ? 'success' : 'error');
+  resultTitle.textContent = isCorrect ? '正解' : '間違い';
+  resultText.innerHTML = parseMarkdown(currentQuestion.explanation);
+
+  // 進捗保存
+  if (!progressData[currentSectionKey]) progressData[currentSectionKey] = [];
+  progressData[currentSectionKey].push(currentQuestion.id);
   saveProgress();
+
+  // 残り問題の更新
+  remainingQuestions = remainingQuestions.filter(q => q.id !== currentQuestion.id);
+
+  // ナビゲーションボタン制御
+  document.getElementById('nav-buttons').classList.remove('hidden');
+  const btnNext = document.getElementById('btn-next');
+  if (remainingQuestions.length === 0) {
+    btnNext.style.display = 'none'; // 最終問題なら「次へ」を消す
+  } else {
+    btnNext.style.display = 'block';
+  }
 }
 
-// チェックボックスの変更を記録
-checkCheckbox.addEventListener('change', (e) => {
-  if (currentQuestion) {
-    const isChecked = e.target.checked;
-    currentQuestion.check = isChecked; // キャッシュ更新
-    checkUpdates[currentQuestion.row] = isChecked; // 送信用キューに追加
-    localStorage.setItem('quiz_data', JSON.stringify(allData));
-  }
+// ボタンイベント設定
+document.getElementById('btn-next').addEventListener('click', nextQuestion);
+document.getElementById('btn-back-list').addEventListener('click', () => {
+  renderListScreen();
 });
 
-btnNext.addEventListener('click', nextQuestion);
-btnBackList.addEventListener('click', backToList);
-
-// 一覧へ戻る & バッチ処理
-function backToList() {
-  saveProgress();
-  
-  // 変更があれば非同期でGASへ送信
-  const updatesArray = Object.keys(checkUpdates).map(rowStr => ({
-    row: parseInt(rowStr),
-    check: checkUpdates[rowStr]
-  }));
-  
-  if (updatesArray.length > 0) {
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' }, // CORS回避用
-      body: JSON.stringify({ updates: updatesArray })
-    }).catch(e => console.error('送信エラー', e));
-    
-    // 送信キューをクリア
-    checkUpdates = {};
-  }
-  
-  renderList();
+// Markdown風太字対応 (**text** -> <strong>text</strong>)
+function parseMarkdown(text) {
+  if (!text) return "";
+  // サニタイズ（簡易）
+  let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 }
-
-function resetUI() {
-  expCard.classList.add('hidden');
-  ansButtons.classList.remove('hidden');
-  nextButtons.classList.add('hidden');
-  checkCheckbox.checked = false;
-  expText.innerHTML = '';
-}
-
-function switchView(viewId) {
-  Object.values(views).forEach(v => v.classList.remove('active'));
-  views[viewId].classList.add('active');
-}
-
-function saveProgress() {
-  localStorage.setItem('quiz_progress', JSON.stringify(progressData));
-}
-
-function loadProgress() {
-  const data = localStorage.getItem('quiz_progress');
-  if (data) progressData = JSON.parse(data);
-}
-
-// 起動
-init();

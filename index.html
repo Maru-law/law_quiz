@@ -3,64 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>クイズアプリ</title>
+  <title>Quiz App</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="loading-view" class="view active">
-    <div class="loader">データを読み込んでいます...</div>
-  </div>
+  <div id="app">
+    <div id="loading-screen" class="screen active">
+      <div class="loader">データを読み込み中...</div>
+    </div>
 
-  <div id="list-view" class="view">
-    <header class="app-header">
-      <h1>問題一覧</h1>
-      <button id="force-sync-btn" class="icon-btn">🔄 更新</button>
-    </header>
-    <div id="category-container" class="container">
-      </div>
-  </div>
-
-  <div id="quiz-view" class="view">
-    <header class="quiz-header">
-      <div class="section-title">
-        <span class="bar"></span>
-        <span id="header-section-name">民法_01</span>
-      </div>
-      <label class="check-later-label">
-        <input type="checkbox" id="check-later-checkbox"> 後で見る
-      </label>
-    </header>
-
-    <div class="container flex-column">
-      <div class="card question-card">
-        <div class="question-meta">
-          <span class="question-number" id="question-number-display">問題 1</span>
-          <span class="progress-text" id="progress-text">1 / 10問</span>
+    <div id="list-screen" class="screen">
+      <div class="header-simple">分野選択</div>
+      <div id="category-container" class="content-scroll">
         </div>
-        <div class="question-text" id="question-text">
-          </div>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+      <div class="quiz-header">
+        <div class="section-title">
+          <span class="bar"></span><span id="header-section-name">民法_01</span>
+        </div>
+      </div>
+      
+      <div class="quiz-content content-scroll">
+        <div class="card question-card">
+          <h2 id="question-number">問題 1</h2>
+          <p id="question-text">問題文がここに入ります。</p>
+        </div>
+
+        <div id="result-card" class="card result-card hidden">
+          <h2 id="result-title">正解</h2>
+          <p id="result-text">解説がここに入ります。</p>
+        </div>
       </div>
 
-      <div class="card explanation-card hidden" id="explanation-card">
-        <h2 class="result-title" id="result-title">正解</h2>
-        <div class="explanation-text" id="explanation-text">
-          </div>
-      </div>
-
-      <div class="action-area">
-        <div class="answer-buttons" id="answer-buttons">
-          <button class="btn btn-circle btn-maru" id="btn-maru">〇</button>
-          <button class="btn btn-circle btn-batsu" id="btn-batsu">×</button>
+      <div class="quiz-footer">
+        <div id="nav-buttons" class="nav-buttons hidden">
+          <button id="btn-back-list" class="btn-secondary">問題一覧へ</button>
+          <button id="btn-next" class="btn-primary">次の問題へ</button>
         </div>
         
-        <div class="next-buttons hidden" id="next-buttons">
-          <button class="btn btn-secondary" id="btn-back-list">問題一覧へ</button>
-          <button class="btn btn-primary" id="btn-next">次の問題へ</button>
+        <div class="answer-buttons">
+          <button id="btn-true" class="circle-btn">〇</button>
+          <button id="btn-false" class="cross-btn">×</button>
         </div>
       </div>
     </div>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
