@@ -1,277 +1,74 @@
-:root {
-  --primary-color: #007bff;
-  --correct-color: #28a745;
-  --incorrect-color: #dc3545;
-  --light-gray: #f8f9fa;
-  --dark-gray: #6c757d;
-  --text-color: #212529;
-  --border-color: #ced4da;
-  --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-* { box-sizing: border-box; }
-
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: var(--light-gray);
-  color: var(--text-color);
+  font-family: sans-serif;
   margin: 0;
-  padding: 16px;
-  line-height: 1.6;
-  -webkit-tap-highlight-color: transparent;
+  background: #f5f5f5;
 }
 
 .container {
-  max-width: 480px;
-  margin: 0 auto;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 16px;
 }
 
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.app-header h1 {
-  margin: 0;
-  font-size: 1.4em;
-  font-weight: bold;
-}
-
+/* カード */
 .card {
-  background-color: white;
-  border-radius: 8px;
+  background: #fff;
+  border-radius: 12px;
   padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: var(--card-shadow);
+  margin: 12px 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-.page { display: none; }
-.page.active { display: block; }
-
-button {
-  flex-grow: 1;
-  font-size: 1.5em;
-  font-weight: bold;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--dark-gray);
-  background-color: white;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, transform 0.08s;
-}
-
-button:active { transform: scale(0.98); }
-button:disabled { cursor: not-allowed; }
-
-.header-button {
-  flex-grow: 0;
-  font-size: 0.9em;
-  padding: 8px 12px;
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.status-card p { margin: 0; color: var(--dark-gray); }
-
-/* 一覧ページ */
-.category-header {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: var(--primary-color);
-  margin-top: 24px;
-  margin-bottom: 8px;
-  border-bottom: 2px solid var(--primary-color);
-  padding-bottom: 4px;
-}
-
-.section-card {
-  display: block;
-  width: 100%;
-  background-color: white;
-  padding: 16px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: var(--text-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  transition: transform 0.2s;
-  text-align: left;
-  font-size: 1em;
-  border: none;
-}
-
-.section-card:hover { transform: translateY(-2px); }
-
+/* セクション */
 .section-title {
-  display: block;
-  font-size: 1.25em;
-  font-weight: bold;
-  color: var(--text-color);
+  font-size: 18px;
+  margin-top: 20px;
+  border-left: 4px solid #2a7de1;
+  padding-left: 10px;
 }
 
-.section-meta {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.9em;
-  color: var(--dark-gray);
+/* 問題 */
+.question {
+  font-size: 18px;
+  line-height: 1.6;
 }
 
-.resume-badge {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background-color: #fff3cd;
-  color: #856404;
-  font-size: 0.8em;
-  font-weight: bold;
-}
-
-/* 問題ページ */
-.category-container {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.category-bar {
-  display: inline-block;
-  width: 4px;
-  height: 20px;
-  background-color: var(--primary-color);
-  margin-right: 8px;
-  border-radius: 2px;
-}
-
-#category-text {
-  font-weight: bold;
-  color: #333;
-}
-
-.question-number {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: var(--primary-color);
-  margin-bottom: 10px;
-}
-
-#question-text {
-  margin: 0;
-  font-size: 1.08em;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.button-group {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.answer-buttons {
-  position: sticky;
-  bottom: 12px;
-  z-index: 10;
-  padding-top: 4px;
-}
-
-#btn-true {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-#btn-false {
-  border-color: var(--incorrect-color);
-  color: var(--incorrect-color);
-}
-
-button.disabled,
-button.dimmed {
-  background-color: #e9ecef !important;
-  color: var(--dark-gray) !important;
-  border-color: var(--border-color) !important;
-  cursor: not-allowed;
-}
-
-button.selected {
-  background-color: #eef6ff;
-  box-shadow: inset 0 0 0 2px currentColor;
-}
-
-.result-card { text-align: center; }
-.result-card.correct { background-color: #e9f7ec; }
-.result-card.incorrect { background-color: #fdeeee; }
-
-#result-text { margin-top: 0; }
-#result-text.correct { color: var(--correct-color); }
-#result-text.incorrect { color: var(--incorrect-color); }
-
-#explanation-text {
-  text-align: left;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-#explanation-text ul {
-  padding-left: 20px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-}
-
-.nav-buttons {
-  flex-direction: column;
-}
-
-#nav-buttons button {
-  font-size: 1em;
-  padding: 12px;
-}
-
-#check-later-btn {
-  background-color: #fff3cd;
-  color: #856404;
-  border: none;
-}
-
-#check-later-btn.checked {
-  background-color: #ffe08a;
-  color: #6b4e00;
-}
-
-#back-to-list-btn {
-  background-color: var(--dark-gray);
-  color: white;
-  border: none;
-}
-
-#next-question-btn {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-}
-
-.toast {
+/* ボタン */
+.buttons {
   position: fixed;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  max-width: calc(100% - 32px);
-  background: rgba(33, 37, 41, 0.92);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 999px;
-  font-size: 0.9em;
-  font-weight: bold;
-  z-index: 100;
+  bottom: 0;
+  width: 100%;
+  display: flex;
 }
 
-.hidden { display: none !important; }
+.btn {
+  flex: 1;
+  padding: 20px;
+  font-size: 24px;
+  border: none;
+}
 
-@media (max-width: 360px) {
-  body { padding: 12px; }
-  .card { padding: 16px; }
-  button { padding: 14px; }
+.btn-o {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-x {
+  background: white;
+  border: 2px solid red;
+  color: red;
+}
+
+/* 結果 */
+.result.correct {
+  background: #e6f4ea;
+}
+
+.result.wrong {
+  background: #fdecea;
+}
+
+/* 上部 */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }

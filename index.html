@@ -1,58 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>問題</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>クイズアプリ</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <header class="app-header">
-      <h1 id="app-title">問題</h1>
-      <button id="refresh-button" class="header-button" type="button">更新</button>
-    </header>
 
-    <!-- セクション一覧 -->
-    <section id="section-page" class="page active">
-      <div class="card status-card">
-        <p id="data-status">データを読み込み中...</p>
-      </div>
-      <div id="section-list"></div>
-    </section>
+<div id="app"></div>
 
-    <!-- 問題画面 -->
-    <section id="quiz-page" class="page">
-      <div id="category-container" class="category-container">
-        <span class="category-bar"></span>
-        <span id="category-text"></span>
-      </div>
-
-      <div id="question-card" class="card">
-        <div id="question-number" class="question-number"></div>
-        <p id="question-text"></p>
-      </div>
-
-      <div id="answer-buttons" class="button-group answer-buttons">
-        <button id="btn-true" type="button">〇</button>
-        <button id="btn-false" type="button">×</button>
-      </div>
-
-      <div id="result-card" class="card result-card" style="display: none;">
-        <h2 id="result-text"></h2>
-        <p id="explanation-text"></p>
-      </div>
-
-      <div id="nav-buttons" class="button-group nav-buttons" style="display: none;">
-        <button id="check-later-btn" type="button">後で見る</button>
-        <button id="next-question-btn" type="button">次の問題へ</button>
-        <button id="back-to-list-btn" type="button">問題一覧へ</button>
-      </div>
-    </section>
-
-    <div id="toast" class="toast" style="display:none;"></div>
-  </div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
