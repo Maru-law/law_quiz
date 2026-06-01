@@ -14,12 +14,28 @@ function parseMarkdown(text) {
     .replace(/\n/g, "<br>");
 }
 
+function loadJSONP(url) {
+  return new Promise((resolve) => {
+    const callbackName = "cb_" + Date.now();
+
+    window[callbackName] = (data) => {
+      resolve(data);
+      document.body.removeChild(script);
+      delete window[callbackName];
+    };
+
+    const script = document.createElement("script");
+    script.src = `${url}?callback=${callbackName}`;
+    document.body.appendChild(script);
+  });
+}
+
 // 初期化
 async function init() {
-  const res = await fetch(GAS_URL);
-  allData = await res.json();
+  allData = await loadJSONP(GAS_URL);
   renderSections();
 }
+``
 
 window.onload = init;
 
