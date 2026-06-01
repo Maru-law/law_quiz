@@ -1,5 +1,5 @@
 // GASのウェブアプリURLをここに設定
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzzphVS89cQ3U9YAwQ8lRlbbXbPzrY-Khug0ebzXHLCs1UyUwQ1JEcvH9BXBnZG3k3MJw/exec';
 
 let allQuestions = [];
 let groupedSections = {};
