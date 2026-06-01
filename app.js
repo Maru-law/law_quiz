@@ -1,214 +1,225 @@
-// ====== 設定 ======
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec";
+// GASのWebアプリURL（※デプロイ後に取得したURLに書き換えてください）
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby83naVQhqg0SzzEmvMlB3JwmT75Z3nexLnZc8j1HE7g6L0Fv9BVfs7WXDoAFB0mc5Cow/exec';
+const STORAGE_KEY = 'law_quiz_progress_v1';
 
-// ====== 状態管理 ======
 let allQuestions = [];
-let progressData = {}; // { "民法_R01": [id1, id2...], ... }
-let currentSectionKey = "";
-let currentSectionQuestions = [];
-let remainingQuestions = [];
+let groupedSections = {}; // { "民法": { "R01": [Q1, Q2...], "R02": [...] } }
+let currentSectionData = [];
+let currentQuestionIndex = 0;
 let currentQuestion = null;
-let currentIsQuestionTrue = true; // 現在の問題がTrue用かFalse用か
+let isShowingTrue = true; 
+let completedIds = []; 
+let totalSectionQuestions = 0;
 
-// ====== DOM要素 ======
-const screens = {
-  loading: document.getElementById('loading-screen'),
-  list: document.getElementById('list-screen'),
-  quiz: document.getElementById('quiz-screen')
+// DOM Elements
+const views = {
+  loading: document.getElementById('loading-view'),
+  list: document.getElementById('list-view'),
+  quiz: document.getElementById('quiz-view')
 };
 
-// 初期化
 document.addEventListener('DOMContentLoaded', initApp);
 
 async function initApp() {
-  loadProgress();
-  
-  // キャッシュの確認
-  const cachedData = localStorage.getItem('quizData');
-  if (cachedData) {
-    allQuestions = JSON.parse(cachedData);
-    renderListScreen();
-  } else {
-    await fetchFromGAS();
+  try {
+    const response = await fetch(GAS_API_URL);
+    allQuestions = await response.json();
+    processData(allQuestions);
+    loadProgress();
+    renderList();
+    switchView('list');
+  } catch (error) {
+    console.error('Data fetch error:', error);
+    alert('データの取得に失敗しました。リロードしてください。');
   }
 }
 
-async function fetchFromGAS() {
-  try {
-    const response = await fetch(GAS_WEB_APP_URL);
-    const data = await response.json();
-    allQuestions = data;
-    localStorage.setItem('quizData', JSON.stringify(data));
-    renderListScreen();
-  } catch (error) {
-    alert("データの取得に失敗しました。通信環境を確認してください。");
-  }
+function switchView(viewName) {
+  Object.values(views).forEach(v => v.classList.remove('active'));
+  views[viewName].classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// データのグルーピング (A列 "カテゴリ_年度" を分割)
+function processData(data) {
+  groupedSections = {};
+  data.forEach(q => {
+    if (!q.section) return;
+    const parts = q.section.split('_');
+    const category = parts[0];
+    const year = parts[1] || 'その他';
+
+    if (!groupedSections[category]) groupedSections[category] = {};
+    if (!groupedSections[category][year]) groupedSections[category][year] = [];
+    
+    groupedSections[category][year].push(q);
+  });
 }
 
 function loadProgress() {
-  const saved = localStorage.getItem('quizProgress');
-  if (saved) progressData = JSON.parse(saved);
+  const saved = localStorage.getItem(STORAGE_KEY);
+  completedIds = saved ? JSON.parse(saved) : [];
 }
 
 function saveProgress() {
-  localStorage.setItem('quizProgress', JSON.stringify(progressData));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(completedIds));
 }
 
-function switchScreen(screenName) {
-  Object.values(screens).forEach(s => s.classList.remove('active'));
-  screens[screenName].classList.add('active');
-}
-
-// ====== 一覧画面ロジック ======
-function renderListScreen() {
+function renderList() {
   const container = document.getElementById('category-container');
   container.innerHTML = '';
-  
-  // カテゴリごとにグループ化
-  const grouped = {};
-  allQuestions.forEach(q => {
-    const parts = q.section.split('_');
-    const category = parts[0] || 'その他';
-    const year = parts.slice(1).join('_') || '共通';
-    
-    if (!grouped[category]) grouped[category] = {};
-    if (!grouped[category][year]) grouped[category][year] = { count: 0, ids: [] };
-    
-    grouped[category][year].count++;
-    grouped[category][year].ids.push(q.id);
-  });
 
-  for (const [category, years]] of Object.entries(grouped)) {
-    const block = document.createElement('div');
-    block.className = 'category-block';
+  for (const [category, yearsObj] of Object.entries(groupedSections)) {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'category-group';
     
-    const title = document.createElement('div');
+    const title = document.createElement('h2');
     title.className = 'category-title';
     title.textContent = category;
-    block.appendChild(title);
-    
+    groupDiv.appendChild(title);
+
     const grid = document.createElement('div');
     grid.className = 'year-grid';
-    
-    for (const [year, info] of Object.entries(years)) {
-      const sectionKey = `${category}_${year}`;
-      const completedIds = progressData[sectionKey] || [];
-      const isCompleted = completedIds.length >= info.count;
 
-      const btn = document.createElement('div');
-      btn.className = `year-btn ${isCompleted ? 'completed' : ''}`;
+    for (const [year, questions] of Object.entries(yearsObj)) {
+      const btn = document.createElement('button');
+      btn.className = 'year-btn';
+      
+      // そのセクションの問題が全て完了しているかチェック
+      const isAllCompleted = questions.every(q => completedIds.includes(q.id));
+      if (isAllCompleted) btn.classList.add('completed');
+
       btn.textContent = year;
-      btn.onclick = () => startSection(sectionKey);
+      btn.onclick = () => startQuiz(category, year, questions);
       grid.appendChild(btn);
     }
-    block.appendChild(grid);
-    container.appendChild(block);
+    groupDiv.appendChild(grid);
+    container.appendChild(groupDiv);
   }
-  switchScreen('list');
 }
 
-// ====== クイズ画面ロジック ======
-function startSection(sectionKey) {
-  currentSectionKey = sectionKey;
-  currentSectionQuestions = allQuestions.filter(q => q.section === sectionKey);
+function startQuiz(category, year, questions) {
+  // 未回答の問題を抽出
+  let remainingQuestions = questions.filter(q => !completedIds.includes(q.id));
   
-  const completedIds = progressData[sectionKey] || [];
-  remainingQuestions = currentSectionQuestions.filter(q => !completedIds.includes(q.id));
-  
-  // 全て解き終わっていたらリセット
+  // 全て回答済みの場合はリセットして全問対象にする
   if (remainingQuestions.length === 0) {
-    progressData[sectionKey] = [];
+    const idsToReset = questions.map(q => q.id);
+    completedIds = completedIds.filter(id => !idsToReset.includes(id));
     saveProgress();
-    remainingQuestions = [...currentSectionQuestions];
-    renderListScreen(); // UIの完了色をリセットするため
+    remainingQuestions = [...questions];
+    renderList(); // 一覧画面の取り消し線状態を更新
   }
 
-  switchScreen('quiz');
-  document.getElementById('header-section-name').textContent = sectionKey;
-  nextQuestion();
-}
+  // ランダムにシャッフル
+  currentSectionData = remainingQuestions.sort(() => Math.random() - 0.5);
+  totalSectionQuestions = questions.length;
+  currentQuestionIndex = questions.length - currentSectionData.length + 1;
 
-function nextQuestion() {
-  // UIリセット
-  document.getElementById('result-card').classList.add('hidden');
-  document.getElementById('nav-buttons').classList.add('hidden');
-  const btnTrue = document.getElementById('btn-true');
-  const btnFalse = document.getElementById('btn-false');
-  btnTrue.classList.remove('disabled-look', 'selected');
-  btnFalse.classList.remove('disabled-look', 'selected');
-  btnTrue.onclick = () => handleAnswer(true);
-  btnFalse.onclick = () => handleAnswer(false);
-
-  // 問題選定
-  const randomIndex = Math.floor(Math.random() * remainingQuestions.length);
-  currentQuestion = remainingQuestions[randomIndex];
-  currentIsQuestionTrue = Math.random() < 0.5;
-
-  // 画面更新
-  const total = currentSectionQuestions.length;
-  const currentNum = total - remainingQuestions.length + 1;
-  document.getElementById('question-number').textContent = `問題 ${currentNum}`;
+  document.getElementById('section-name-text').textContent = `${category}_${year}`;
   
-  const qText = currentIsQuestionTrue ? currentQuestion.question_true : currentQuestion.question_false;
-  document.getElementById('question-text').innerHTML = parseMarkdown(qText);
+  switchView('quiz');
+  loadNextQuestion();
 }
 
-function handleAnswer(userChoseTrue) {
-  // ボタンの見た目更新
-  const btnTrue = document.getElementById('btn-true');
-  const btnFalse = document.getElementById('btn-false');
-  btnTrue.onclick = null;
-  btnFalse.onclick = null;
+// Markdownの太字(**text**)を変換する関数
+function parseMarkdown(text) {
+  if (!text) return '';
+  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
 
-  if (userChoseTrue) {
-    btnTrue.classList.add('selected');
-    btnFalse.classList.add('disabled-look');
-  } else {
-    btnFalse.classList.add('selected');
-    btnTrue.classList.add('disabled-look');
+function loadNextQuestion() {
+  if (currentSectionData.length === 0) {
+    alert('このセクションの問題を全て解き終えました！');
+    renderList();
+    switchView('list');
+    return;
   }
 
-  // 正誤判定
-  const isCorrect = userChoseTrue === currentIsQuestionTrue;
+  // 初期化・UIリセット
+  currentQuestion = currentSectionData.pop();
+  isShowingTrue = Math.random() >= 0.5; // 50%の確率
+  
+  document.getElementById('q-num').textContent = currentQuestionIndex;
+  document.getElementById('progress-text').textContent = `全${totalSectionQuestions}問中 ${currentQuestionIndex}問目`;
+  
+  // 問題文セット
+  const qText = isShowingTrue ? currentQuestion.question_true : currentQuestion.question_false;
+  document.getElementById('question-text').innerHTML = parseMarkdown(qText);
 
-  // 結果表示
+  // UI状態の復元
+  document.getElementById('result-card').classList.add('hidden');
+  document.getElementById('action-buttons').classList.add('hidden');
+  
+  const btnO = document.getElementById('btn-true');
+  const btnX = document.getElementById('btn-false');
+  
+  [btnO, btnX].forEach(btn => {
+    btn.classList.remove('disabled', 'dimmed');
+  });
+}
+
+// 解答ボタンのイベントリスナー
+document.getElementById('btn-true').onclick = () => handleAnswer(true);
+document.getElementById('btn-false').onclick = () => handleAnswer(false);
+
+function handleAnswer(userSelectedTrue) {
+  // 正誤判定：正しい文章が表示されていて「〇」を選んだ、または間違った文章で「×」を選んだ場合
+  const isCorrect = (isShowingTrue === userSelectedTrue);
+  
+  // 進捗保存
+  if (!completedIds.includes(currentQuestion.id)) {
+    completedIds.push(currentQuestion.id);
+    saveProgress();
+  }
+
+  // ボタンの視覚的フィードバック（選ばなかった方をグレーアウト）
+  const btnO = document.getElementById('btn-true');
+  const btnX = document.getElementById('btn-false');
+  btnO.classList.add('disabled');
+  btnX.classList.add('disabled');
+  
+  if (userSelectedTrue) {
+    btnX.classList.add('dimmed');
+  } else {
+    btnO.classList.add('dimmed');
+  }
+
+  // 結果カードの表示
   const resultCard = document.getElementById('result-card');
   const resultTitle = document.getElementById('result-title');
-  const resultText = document.getElementById('result-text');
+  const expText = document.getElementById('explanation-text');
+
+  resultCard.classList.remove('hidden', 'correct', 'incorrect');
+  if (isCorrect) {
+    resultCard.classList.add('correct');
+    resultTitle.textContent = '正解';
+  } else {
+    resultCard.classList.add('incorrect');
+    resultTitle.textContent = '間違い';
+  }
   
-  resultCard.classList.remove('hidden', 'success', 'error');
-  resultCard.classList.add(isCorrect ? 'success' : 'error');
-  resultTitle.textContent = isCorrect ? '正解' : '間違い';
-  resultText.innerHTML = parseMarkdown(currentQuestion.explanation);
+  expText.innerHTML = parseMarkdown(currentQuestion.explanation);
 
-  // 進捗保存
-  if (!progressData[currentSectionKey]) progressData[currentSectionKey] = [];
-  progressData[currentSectionKey].push(currentQuestion.id);
-  saveProgress();
-
-  // 残り問題の更新
-  remainingQuestions = remainingQuestions.filter(q => q.id !== currentQuestion.id);
-
-  // ナビゲーションボタン制御
-  document.getElementById('nav-buttons').classList.remove('hidden');
-  const btnNext = document.getElementById('btn-next');
-  if (remainingQuestions.length === 0) {
-    btnNext.style.display = 'none'; // 最終問題なら「次へ」を消す
+  // アクションボタンの表示制御
+  const actionButtons = document.getElementById('action-buttons');
+  const btnNext = document.getElementById('btn-next-question');
+  actionButtons.classList.remove('hidden');
+  
+  if (currentSectionData.length === 0) {
+    btnNext.style.display = 'none'; // 最終問題の場合は非表示
   } else {
     btnNext.style.display = 'block';
   }
 }
 
-// ボタンイベント設定
-document.getElementById('btn-next').addEventListener('click', nextQuestion);
-document.getElementById('btn-back-list').addEventListener('click', () => {
-  renderListScreen();
-});
+// アクションボタンの挙動
+document.getElementById('btn-next-question').onclick = () => {
+  currentQuestionIndex++;
+  loadNextQuestion();
+};
 
-// Markdown風太字対応 (**text** -> <strong>text</strong>)
-function parseMarkdown(text) {
-  if (!text) return "";
-  // サニタイズ（簡易）
-  let safeText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-}
+document.getElementById('btn-back-list').onclick = () => {
+  renderList();
+  switchView('list');
+};

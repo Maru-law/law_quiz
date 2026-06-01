@@ -1,168 +1,108 @@
 :root {
-  --primary-blue: #007aff;
-  --success-green: #28a745;
-  --success-bg: #e6f4ea;
-  --error-red: #dc3545;
-  --error-bg: #fce8e6;
+  --primary-color: #007AFF;
+  --bg-color: #F2F2F7;
   --text-main: #333333;
-  --bg-color: #f8f9fa;
-  --card-bg: #ffffff;
-  --border-color: #e0e0e0;
+  --text-muted: #8E8E93;
+  --card-bg: #FFFFFF;
+  --correct-bg: #E8F5E9;
+  --correct-text: #4CAF50;
+  --incorrect-bg: #FFEBEE;
+  --incorrect-text: #F44336;
+  --btn-gray: #788591;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", "Hiragino Kaku Gothic ProN", "Hiragino Sans", Arial, sans-serif;
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
   line-height: 1.6;
 }
 
 #app {
-  width: 100%;
-  max-width: 480px; /* スマホ最適化 */
+  max-width: 480px;
   margin: 0 auto;
-  height: 100vh;
-  position: relative;
+  min-height: 100vh;
   background-color: var(--bg-color);
-  overflow: hidden;
+  position: relative;
   display: flex;
   flex-direction: column;
 }
 
-.screen { display: none; height: 100%; flex-direction: column; }
-.screen.active { display: flex; }
+.view { display: none; padding: 20px 16px; flex: 1; }
+.view.active { display: flex; flex-direction: column; }
 
-/* ヘッダー */
-.header-simple {
-  background: var(--card-bg);
-  padding: 16px;
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center;
-  border-bottom: 1px solid var(--border-color);
-}
-.quiz-header {
-  padding: 16px;
-  background-color: var(--bg-color);
-}
-.section-title {
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  font-weight: bold;
-}
-.section-title .bar {
-  width: 4px;
-  height: 18px;
-  background-color: var(--primary-blue);
-  margin-right: 8px;
-  border-radius: 2px;
-}
-
-/* スクロールエリア */
-.content-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px 20px;
-}
-
-/* カードデザイン */
+/* 共通コンポーネント */
 .card {
   background: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
-.question-card h2 {
-  color: var(--primary-blue);
-  font-size: 18px;
-  margin-bottom: 16px;
-}
-.question-card p { font-size: 16px; }
-
-/* 結果カード */
-.result-card.success { background-color: var(--success-bg); }
-.result-card.success h2 { color: var(--success-green); text-align: center; margin-bottom: 12px; }
-.result-card.error { background-color: var(--error-bg); }
-.result-card.error h2 { color: var(--error-red); text-align: center; margin-bottom: 12px; }
 .hidden { display: none !important; }
+strong { font-weight: bold; color: #111; }
 
-/* フッター（ボタン領域） */
-.quiz-footer {
-  background: var(--bg-color);
-  padding: 12px 16px 24px;
-  border-top: 1px solid var(--border-color);
+/* ローディング */
+#loading-view { align-items: center; justify-content: center; height: 100vh; }
+.spinner {
+  margin-top: 16px; width: 40px; height: 40px;
+  border: 4px solid #ddd; border-top-color: var(--primary-color);
+  border-radius: 50%; animation: spin 1s linear infinite;
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* アクションボタン (次へ / 一覧へ) */
-.nav-buttons {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.nav-buttons button {
-  flex: 1;
-  padding: 14px 0;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
-}
-.btn-primary { background: var(--primary-blue); color: #fff; }
-.btn-secondary { background: #6c757d; color: #fff; }
-
-/* 〇×ボタン */
-.answer-buttons { display: flex; gap: 16px; }
-.answer-buttons button {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px 0;
-  font-size: 28px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.circle-btn { border: 2px solid var(--primary-blue); color: var(--primary-blue); }
-.cross-btn { border: 2px solid var(--error-red); color: var(--error-red); }
-
-/* 解答後の非選択状態 */
-.answer-buttons button.disabled-look {
-  border-color: #d0d0d0;
-  color: #d0d0d0;
-  pointer-events: none;
-}
-.answer-buttons button.selected {
-  pointer-events: none;
-}
-
-/* 一覧画面のカテゴリUI */
-.category-block { margin-top: 20px; }
-.category-title {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 4px;
-}
-.year-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-}
+/* 一覧画面 */
+.category-group { margin-bottom: 24px; }
+.category-title { font-size: 1.1rem; margin-bottom: 12px; font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 4px;}
+.year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
 .year-btn {
-  background: #fff;
-  border: 1px solid var(--border-color);
-  padding: 12px 4px;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 14px;
-  cursor: pointer;
+  background: var(--card-bg); border: 1px solid #ddd; padding: 12px 8px;
+  border-radius: 8px; font-size: 0.9rem; font-weight: bold;
+  cursor: pointer; text-align: center; color: var(--primary-color);
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-.year-btn.completed { background: #e0e0e0; color: #888; }
-.loader { text-align: center; margin-top: 50vh; transform: translateY(-50%); font-weight: bold; }
-strong { font-weight: 800; }
+.year-btn.completed { background: #E0E0E0; color: var(--text-muted); text-decoration: line-through; }
+
+/* クイズ画面ヘッダー */
+#quiz-view header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+#current-section-title { font-size: 1.2rem; display: flex; align-items: center; }
+.accent-bar { display: inline-block; width: 4px; height: 18px; background-color: var(--primary-color); margin-right: 8px; border-radius: 2px; }
+#progress-text { font-size: 0.9rem; color: var(--text-muted); font-weight: bold; }
+
+/* クイズ内容 */
+#quiz-content { flex: 1; }
+.question-number { color: var(--primary-color); font-size: 1.1rem; margin-bottom: 12px; }
+#question-text { font-size: 1.05rem; }
+
+/* 結果カード */
+#result-card { text-align: center; }
+#result-title { font-size: 1.4rem; margin-bottom: 12px; }
+#result-card.correct { background-color: var(--correct-bg); }
+#result-card.correct #result-title { color: var(--correct-text); }
+#result-card.incorrect { background-color: var(--incorrect-bg); }
+#result-card.incorrect #result-title { color: var(--incorrect-text); }
+#explanation-text { text-align: left; font-size: 0.95rem; }
+
+/* アクションボタン */
+#action-buttons { display: flex; gap: 12px; margin-bottom: 20px; }
+#action-buttons button {
+  flex: 1; padding: 14px; border: none; border-radius: 8px;
+  font-size: 1rem; font-weight: bold; color: white; cursor: pointer;
+}
+.btn-secondary { background-color: var(--btn-gray); }
+.btn-primary { background-color: var(--primary-color); }
+
+/* 解答ボタン (O/X) */
+#answer-buttons { display: flex; gap: 16px; padding-bottom: 20px; margin-top: auto; }
+.answer-btn {
+  flex: 1; height: 64px; background: var(--card-bg); border-radius: 8px;
+  font-size: 1.8rem; font-weight: bold; cursor: pointer;
+  transition: all 0.2s ease; display: flex; align-items: center; justify-content: center;
+}
+.btn-o { border: 2px solid var(--primary-color); color: var(--primary-color); }
+.btn-x { border: 2px solid var(--incorrect-text); color: var(--incorrect-text); }
+.answer-btn:active { transform: scale(0.95); }
+.answer-btn.disabled { pointer-events: none; }
+.answer-btn.dimmed { opacity: 0.3; background-color: #f9f9f9; }
